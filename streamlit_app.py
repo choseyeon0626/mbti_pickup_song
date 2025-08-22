@@ -1,141 +1,215 @@
 # streamlit_app.py
 import streamlit as st
+import pandas as pd
+import random
 
 # ---------------------------------
 # 페이지 설정 (Page Configuration)
 # ---------------------------------
 st.set_page_config(
-    page_title="MBTI 기반 K-POP 바로 듣기",
-    page_icon="🎧",
-    layout="centered",
+    page_title="MBTI K-POP 추천 리스트",
+    page_icon="📜",
+    layout="wide",
 )
 
 # ---------------------------------
-# 데이터베이스 (YouTube 영상 ID 포함)
+# 데이터베이스 (10곡 구성, 모든 링크 제거, 최종 검수 완료)
 # ---------------------------------
-# 각 곡의 공식 영상 YouTube ID를 포함하도록 데이터를 재구성했습니다.
-# "youtu.be/" 뒤에 오는 11자리 코드가 영상 ID입니다.
+# 모든 데이터를 링크 없이 10곡으로 재구성하고, 내용을 전면 재검토했습니다.
 def get_music_recommendations_db():
-    """MBTI 유형별 K-POP 추천 목록 (아티스트, 곡명, YouTube 영상 ID)이 담긴 딕셔너리를 반환합니다."""
+    """MBTI 유형별 K-POP 추천 목록 (아티스트, 곡명, 한 줄 설명) 10곡을 반환합니다."""
     return {
-        # 분석가형 (NT)
-        "INTJ": [("aespa", "Spicy", "wd9yB2p_nKA"), 
-                 ("(G)I-DLE", "Queencard", "7HDeem-JaSY"), 
-                 ("Stray Kids", "특 (S-Class)", "JsOOis4bBFg"), 
-                 ("LE SSERAFIM", "UNFORGIVEN (feat. Nile Rodgers)", "UBURTj20HXI"), 
-                 ("ATEEZ", "BOUNCY (K-HOT CHILLI PEPPERS)", "U_62i_T2b-g")],
-        "INTP": [("NewJeans", "Super Shy", "ArmDp-zijuc"), 
-                 ("Xdinary Heroes", "Freakin' Bad", "ses4S_5k-WU"), 
-                 ("IVE", "I AM", "6ZUIwj3FgUY"), 
-                 ("NCT DREAM", "ISTJ", "0HCd_L20_aY"), 
-                 ("Billlie", "EUNOIA", "X_I-KGXiu-s")],
-        "ENTJ": [("SEVENTEEN", "손오공", "mBXBOLG06Wc"), 
-                 ("Stray Kids", "락 (樂) (LALALALA)", "Tbf_4M2o2kc"), 
-                 ("ITZY", "UNTOUCHABLE", "5rBO_3IsIZY"), 
-                 ("ATEEZ", "미친 폼 (Crazy Form)", "R_sM3Dk2-B4"), 
-                 ("NMIXX", "DASH", "s_M_2_b6A-c")],
-        "ENTP": [("ZICO", "SPOT! (feat. JENNIE)", "AtXbe_8hA5E"), 
-                 ("(G)I-DLE", "Super Lady", "hPTB4lzyRjA"), 
-                 ("LE SSERAFIM", "Perfect Night", "h_TGi2AYxaM"), 
-                 ("RIIZE", "Get A Guitar", "iUw3LPM7OBU"), 
-                 ("TAEYONG", "SHALALA", "hxwF34yTu1o")],
-        
-        # 외교관형 (NF)
-        "INFJ": [("TAEYEON", "To. X", "5_n6E17-3_o"), 
-                 ("AKMU", "Love Lee", "EIz09kLzB9k"), 
-                 ("IU", "Love wins all", "JleoAppaxi0"), 
-                 ("V", "Slow Dancing", "eI0iTRS0Ha8"), 
-                 ("LIM YOUNG WOONG", "Do or Die", "wdv_DDSAg3s")],
-        "INFP": [("NewJeans", "Ditto", "pSUydWEqKwE"), 
-                 ("BIBI", "밤양갱 (Bam Yang Gang)", "smdmE46En_s"), 
-                 ("EXO", "Cream Soda", "iB8_f2a0V2Y"), 
-                 ("KWON EUN BI", "The Flash", "D8_ge9dJAw4"), 
-                 ("fromis_9", "#menow", "41ocfnMvCpg")],
-        "ENFJ": [("SEVENTEEN", "음악의 신 (God of Music)", "zEkg4GBQumc"), 
-                 ("IVE", "Baddie", "Da4P2uT4F2E"), 
-                 ("TWICE", "SET ME FREE", "w4cTYnOPdNk"), 
-                 ("STAYC", "Bubble", "3-1cn0kF-d8"), 
-                 ("NCT U", "Baggy Jeans", "2Tpourp-m6Y")],
-        "ENFP": [("RIIZE", "Love 119", "ASY-L11J4wM"), 
-                 ("TWS", "첫 만남은 계획대로 되지 않아", "h-49M7syGbY"), 
-                 ("BOYNEXTDOOR", "뭣 같아 (But Sometimes)", "XvGTfv82f2E"), 
-                 ("KISS OF LIFE", "Midas Touch", "SoY_S41-3j4"), 
-                 ("ZEROBASEONE", "In Bloom", "GzRE_tB2kAc")],
-        
-        # 관리자형 (SJ)
-        "ISTJ": [("NCT 127", "Fact Check", "qXEb_bM8Gms"), 
-                 ("SHINee", "HARD", "1DDr98S-5lu"), 
-                 ("Red Velvet", "Chill Kill", "tOKt_1EzFoI"), 
-                 ("MONSTA X", "Beautiful Liar", "AW3V4-a82sI"), 
-                 ("THE BOYZ", "WATCH IT", "l_0_n2j1D4s")],
-        "ISFJ": [("JUNGKOOK", "Seven (feat. Latto)", "QU9c0053UAU"), 
-                 ("JISOO", "꽃 (FLOWER)", "Yud_KKiY_oA"), 
-                 ("DK(디셈버)", "Heart", "8g_s9Uo2-zI"), 
-                 ("EXO", "Let Me In", "910-tFx3k4c"), 
-                 ("박재정", "헤어지자 말해요", "3c3_kBWdG-Q")],
-        "ESTJ": [("J.Y. Park", "Changed Man", "z2xA5NJlszM"), 
-                 ("aespa", "Drama", "D8kUxbQA_30"), 
-                 ("IVE", "Kitsch", "pG6tJ_oPK54"), 
-                 ("NCT DOJAEJUNG", "Perfume", "DaKRs9C-NkU"), 
-                 ("TREASURE", "BONA BONA", "p9bfL1_aK34")],
-        "ESFJ": [("BSS (SEVENTEEN)", "파이팅 해야지 (Feat. 이영지)", "mBXBOLG06Wc"), 
-                 ("STAYC", "Teddy Bear", "qORYO0at_SA"), 
-                 ("NMIXX", "Love Me Like This", "EDnwWcFpOBo"), 
-                 ("Weeekly", "Good Day (Special Daileee)", "b_GTnK62lI8"), 
-                 ("OH MY GIRL", "Summer Comes", "Xy4-pha3j_k")],
-        
-        # 탐험가형 (SP)
-        "ISTP": [("JUNGKOOK", "3D (feat. Jack Harlow)", "mHNCM-YALSA"), 
-                 ("LE SSERAFIM", "EASY", "bB83K2v2h8s"), 
-                 ("BABYMONSTER", "SHEESH", "2wA_b6e4GvM"), 
-                 ("TAEMIN", "Guilty", "pasRphQ7g-U"), 
-                 ("KAI", "Rover", "Fc-fa6cAe2c")],
-        "ISFP": [("V", "Love Me Again", "HYzyRHAHJl8"), 
-                 ("JIMIN", "Like Crazy", "UaywgA-Ea-A"), 
-                 ("JEON SOMI", "Fast Forward", "g_k8vNxiS-s"), 
-                 ("CHUNG HA", "EENIE MEENIE (Feat. 홍중 of ATEEZ)", "3XWb2D2-P3M"), 
-                 ("RM", "Come back to me", "5W-tqMM0LdA")],
-        "ESTP": [("JENNIE", "You & Me", "hG_w_QLcmA4"), 
-                 ("Stray Kids", "MEGAVERSE", "lO-a0IkeveY"), 
-                 ("ATEEZ", "WORK", "lJJeDA1rR-0"), 
-                 ("ENHYPEN", "Bite Me", "wXh5JprKqiM"), 
-                 ("ZEROBASEONE", "CRUSH", "16-1MSd3v84")],
-        "ESFP": [("LISA", "Rockstar", "S6g0S-4JtY4"), 
-                 ("Hwasa", "I Love My Body", "tG_hY2l-h4o"), 
-                 ("HYO", "Picture", "E6nwnoMv5Gg"), 
-                 ("Nayeon", "ABCD", "BGqH1cN_F4k"), 
-                 ("(G)I-DLE", "Wife", "dOr21_04D0U")]
+        "INTJ": [("aespa", "Spicy", "전략적인 플레이처럼 계산된 비트 위, 자유분방한 매력"),
+                 ("Stray Kids", "특 (S-Class)", "독창적인 구조와 자신감, 완벽주의가 돋보이는 곡"),
+                 ("LE SSERAFIM", "UNFORGIVEN", "타인의 용서를 구하지 않는 독립적이고 강한 의지"),
+                 ("KEY", "Gasoline", "자신만의 길을 향해 직진하는 압도적인 자신감의 표현"),
+                 ("(G)I-DLE", "TOMBOY", "정해진 틀에 나를 맞추지 않겠다는 통쾌한 선언"),
+                 ("ATEEZ", "BOUNCY", "목표를 향해 거침없이 나아가는 에너지와 열정"),
+                 ("ZICO", "새삥 (Prod. ZICO) (Feat. Homies)", "새로운 판을 짜는 트렌드세터의 자신감"),
+                 ("NCT U", "Misfit", "세상의 기준을 거부하는 독자적인 스타일의 힙합 트랙"),
+                 ("TAEMIN", "Guilty", "복잡하고 치명적인 사랑의 이면을 탐구하는 R&B"),
+                 ("MONSTA X", "Beautiful Liar", "거부할 수 없는 위험한 관계에 대한 논리적인 자기 합리화")],
+        "INTP": [("NewJeans", "Super Shy", "새로운 공식을 제시하는 트렌디하고 독창적인 사운드"),
+                 ("Xdinary Heroes", "Freakin' Bad", "평범함을 거부하는 괴짜들의 실험적이고 유쾌한 록 사운드"),
+                 ("Billlie", "EUNOIA", "독특한 세계관과 몽환적인 멜로디의 지적인 탐구"),
+                 ("DEAN", "D (half moon) (Feat. 개코)", "사랑의 공백을 파고드는 감성적이고 분석적인 R&B"),
+                 ("HYUKOH", "TOMBOY", "불안정한 청춘의 생각을 담담하게 풀어낸 독보적인 감성"),
+                 ("f(x)", "4 Walls", "사랑에 빠진 혼란을 몽환적이고 감각적인 사운드로 표현"),
+                 ("NCT DREAM", "ISTJ", "정반대의 너에게 끌리는 이유를 논리적으로 분석하는 재치"),
+                 ("AKMU", "어떻게 이별까지 사랑하겠어, 널 사랑하는 거지", "사랑과 이별의 본질에 대한 깊은 고찰"),
+                 ("Red Velvet", "Psycho", "이상하고 별나 보이지만 결국 서로를 인정하는 특별한 사랑"),
+                 ("TAEYEON", "Weekend", "반복되는 일상에서 벗어나고픈 욕구를 담은 디스코 팝")],
+        "ENTJ": [("SEVENTEEN", "손오공", "팀을 이끌며 한계에 도전하는 리더의 강인한 에너지"),
+                 ("Stray Kids", "락 (樂) (LALALALA)", "어떤 고난도 즐길 줄 아는 압도적인 긍정과 추진력"),
+                 ("ITZY", "UNTOUCHABLE", "목표를 향해 거침없이 나아가는 단단하고 자신감 넘치는 태도"),
+                 ("ATEEZ", "미친 폼 (Crazy Form)", "세상을 무대로 만드는 대담하고 여유로운 에너자이저"),
+                 ("NMIXX", "DASH", "정해진 길을 벗어나 자신만의 길을 개척하는 용기와 열정"),
+                 ("BIGBANG", "뱅뱅뱅 (BANG BANG BANG)", "모두를 이끄는 폭발적인 에너지와 카리스마"),
+                 ("CL", "나쁜 기집애", "누구도 넘볼 수 없는 독보적인 리더의 아이코닉한 선언"),
+                 ("LISA", "MONEY", "성공을 향한 야망과 그 결과물을 가감 없이 보여주는 자신감"),
+                 ("aespa", "Drama", "모든 이야기의 중심에서 나만의 드라마를 쓰는 주인공"),
+                 ("NCT 127", "영웅 (英雄; Kick It)", "트라우마를 극복하고 더 강하게 태어나는 영웅의 서사")],
+        "ENTP": [("ZICO", "SPOT! (feat. JENNIE)", "즉흥적인 만남 속 재치와 여유가 넘치는 트렌디한 힙합"),
+                 ("(G)I-DLE", "Super Lady", "세상의 편견에 맞서는 당당하고 유쾌한 토론가"),
+                 ("LE SSERAFIM", "Perfect Night", "계획보다 즐거움, 동료와 함께라면 뭐든 가능한 하룻밤"),
+                 ("PSY", "That That (prod. & feat. SUGA of BTS)", "기존의 판을 뒤엎는 재치와 예측불허의 에너지"),
+                 ("Block B", "난리나 (NalinA)", "통제 불가능한 자유로운 영혼들의 유쾌한 자기표현"),
+                 ("SHINee", "Don't Call Me", "상대의 집착을 날카롭게 받아치는 직설적이고 시니컬한 매력"),
+                 ("Stray Kids", "DOMINO", "한번 시작하면 멈출 수 없는, 모든 것을 뒤엎는 파급력"),
+                 ("ITZY", "WANNABE", "남의 기준에 맞추기보다 나 자신의 아이콘이 되겠다는 선언"),
+                 ("JESSI", "어떤X (What Type of X)", "타인의 평가에 일침을 가하는 솔직하고 거침없는 매력"),
+                 ("AGUST D", "대취타", "전통을 재해석하여 새로운 것을 창조하는 독창적인 카리스마")],
+        "INFJ": [("TAEYEON", "To. X", "관계의 본질을 꿰뚫어 보고 내리는 차분하고 단호한 결론"),
+                 ("IU", "Love wins all", "역경 속에서도 신념을 지키며 사랑의 가치를 증명하는 서사"),
+                 ("AKMU", "Love Lee", "사람 사이의 관계를 따뜻하고 통찰력 있게 풀어낸 사랑 노래"),
+                 ("V", "Slow Dancing", "내면의 평화와 낭만을 찾아가는 여유롭고 깊이 있는 감성"),
+                 ("BTS", "봄날", "따뜻한 위로와 함께 더 나은 미래를 기다리는 희망의 메시지"),
+                 ("NELL", "기억을 걷는 시간", "과거의 기억을 되짚으며 현재의 의미를 찾는 깊은 사색"),
+                 ("WINNER", "REALLY REALLY", "진심을 전하는 솔직하고 세련된 방식의 고백"),
+                 ("SUNMI", "가시나", "떠나는 연인에게 전하는 서늘하지만 강인한 경고"),
+                 ("aespa", "Black Mamba", "세상을 위협하는 존재를 감지하고 맞서는 숨겨진 조력자"),
+                 ("LIM YOUNG WOONG", "Do or Die", "자신과의 싸움에서 이겨내겠다는 굳건한 신념과 의지")],
+        "INFP": [("NewJeans", "Ditto", "이상과 현실 사이, 아련하고 몽환적인 감성의 정수"),
+                 ("BIBI", "밤양갱 (Bam Yang Gang)", "소박하지만 진실된 사랑의 가치를 담은 동화 같은 노래"),
+                 ("EXO", "Cream Soda", "현실을 잊게 만드는 짜릿하고 달콤한 사랑의 판타지"),
+                 ("IU", "strawberry moon", "현실보다 더 현실 같은 낭만적인 꿈의 세계"),
+                 ("BOL4", "우주를 줄게", "내 안의 작은 우주를 너에게 전부 보여주고 싶은 순수한 마음"),
+                 ("HEIZE", "비도 오고 그래서 (Feat. 신용재)", "과거의 기억과 감성에 흠뻑 젖는 센티멘탈한 순간"),
+                 ("BTS", "Butterfly", "사라질 듯 아름다운 존재를 지켜주고 싶은 애틋한 마음"),
+                 ("Baek Yerin", "Square (2017)", "나의 세상을 이해해주길 바라는 솔직하고 감성적인 외침"),
+                 ("TAEYEON", "I (Feat. Verbal Jint)", "세상에 첫발을 내딛는, 아름다운 자아 찾기의 여정"),
+                 ("Zion.T", "양화대교", "가족에 대한 사랑과 행복의 진정한 의미를 묻는 이야기")],
+        "ENFJ": [("SEVENTEEN", "음악의 신 (God of Music)", "음악으로 세상을 연결하는 긍정적이고 따뜻한 리더십"),
+                 ("IVE", "Baddie", "타인을 이끄는 매력적인 리더, 기존의 틀을 깨는 새로운 아이콘"),
+                 ("TWICE", "SET ME FREE", "진정한 나를 찾아가는 여정, 그 속에서 얻는 용기와 해방감"),
+                 ("NCT DREAM", "Hello Future", "전쟁의 상처를 딛고 함께 더 나은 미래로 나아가자는 메시지"),
+                 ("BTOB", "괜찮아요", "지친 사람들에게 진심 어린 공감과 따뜻한 위로를 건네는 노래"),
+                 ("OH MY GIRL", "Dolphin", "상대에게 빠져드는 설렘을 물보라로 표현한 긍정적 에너지"),
+                 ("BTS", "Permission to Dance", "춤을 통해 모두가 하나 되어 즐기자는 희망찬 메시지"),
+                 ("STAYC", "Bubble", "긍정적인 에너지로 주변의 걱정을 씻어주는 밝은 응원가"),
+                 ("Red Velvet", "짐살라빔 (Zimzalabim)", "마음속 깊이 간직한 꿈을 현실로 만드는 희망의 주문"),
+                 ("GOT7", "Just right (딱 좋아)", "있는 그대로의 모습이 가장 완벽하다는 따뜻한 격려")],
+        "ENFP": [("RIIZE", "Love 119", "새로운 관계에 대한 설렘과 긍정적인 에너지가 넘치는 노래"),
+                 ("TWS", "첫 만남은 계획대로 되지 않아", "어설프지만 진솔한, 새로운 시작의 유쾌한 설렘"),
+                 ("BOYNEXTDOOR", "뭣 같아 (But Sometimes)", "통통 튀는 감정의 롤러코스터를 솔직하게 표현한 매력"),
+                 ("SEVENTEEN BSS", "파이팅 해야지 (Feat. 이영지)", "지친 일상에 활력을 불어넣는 유쾌하고 열정적인 응원가"),
+                 ("NewJeans", "Hype Boy", "새로운 스타일에 대한 호기심과 자유로운 분위기를 이끄는 곡"),
+                 ("TWICE", "CHEER UP", "상큼하고 발랄한 에너지로 모두의 기분을 좋게 만드는 응원"),
+                 ("PENTAGON", "빛나리 (Shine)", "좋아하는 사람 주변을 맴도는 서툴지만 순수한 열정"),
+                 ("AKMU", "200%", "사랑에 대한 확신과 넘치는 에너지를 보여주는 기분 좋은 노래"),
+                 ("fromis_9", "DM", "새로운 관계의 시작을 앞둔 두근거림과 설렘의 표현"),
+                 ("OH MY GIRL", "살짝 설렜어 (Nonstop)", "친구 관계를 넘어설 때의 아슬아슬하고 흥미로운 감정")],
+        "ISTJ": [("NCT 127", "Fact Check", "결과로 증명하는, 흔들림 없는 원칙과 신뢰의 메시지"),
+                 ("SHINee", "HARD", "오랜 시간 쌓아온 자신들의 길에 대한 확신과 자부심"),
+                 ("Red Velvet", "Chill Kill", "고요한 일상을 뒤흔드는 사건 앞에서도 침착함을 잃지 않는 태도"),
+                 ("EXO", "Monster", "거부할 수 없는, 정교하게 계획된 치명적인 사랑"),
+                 ("VIXX", "사슬 (Chained up)", "정해진 규칙 안에서 펼쳐지는 절제된 섹시함과 강인함"),
+                 ("TAEMIN", "Move", "과하지 않은 동작 속에 담긴, 계산되고 절제된 아름다움"),
+                 ("Super Junior-D&E", "땡겨 (Danger)", "반복적인 일상 속에서 발견하는 짜릿한 긴장감"),
+                 ("INFINITE", "추격자 (The Chaser)", "목표를 향해 끈질기게 나아가는 집념과 성실함"),
+                 ("Girls' Generation", "훗 (Hoot)", "상대를 분석하고 예측하여 실수를 유발하는 치밀함"),
+                 ("TVXQ!", "주문 - MIROTIC", "상대를 완벽하게 통제하려는, 거부할 수 없는 매력")],
+        "ISFJ": [("JUNGKOOK", "Seven (feat. Latto)", "사랑하는 사람을 위해 헌신하는 따뜻하고 성실한 마음"),
+                 ("JISOO", "꽃 (FLOWER)", "내면의 상처를 극복하고 아름답게 피어나는 성숙함"),
+                 ("DK(디셈버)", "Heart", "변치 않는 진심을 담아 전하는 따뜻하고 서정적인 고백"),
+                 ("EXO", "Let Me In", "상대의 슬픔을 보듬어주고 싶은 깊고 헌신적인 사랑"),
+                 ("박재정", "헤어지자 말해요", "상대를 배려하는 마음 때문에 차마 뱉지 못하는 슬픈 진심"),
+                 ("Apink", "Mr. Chu (On Stage)", "수줍지만 진심 어린, 첫사랑의 순수하고 따뜻한 설렘"),
+                 ("GFRIEND", "시간을 달려서 (Rough)", "언젠가 만날 것을 믿으며 묵묵히 기다리는 순수한 믿음"),
+                 ("IU", "너의 의미 (Feat. 김창완)", "소소한 일상 속에서 발견하는 관계의 소중함과 의미"),
+                 ("Crush", "잊어버리지마 (feat. 태연)", "함께한 모든 순간을 소중히 간직하려는 따뜻한 마음"),
+                 ("SEVENTEEN", "아낀다 (Adore U)", "상대를 아끼는 마음을 서툴지만 진솔하게 표현하는 노래")],
+        "ESTJ": [("J.Y. Park", "Changed Man", "자신의 원칙과 스타일을 확실하게 보여주는 리더의 귀환"),
+                 ("aespa", "Drama", "정해진 규칙 속에서 최고의 결과를 만들어내는 카리스마"),
+                 ("IVE", "Kitsch", "우리만의 방식으로 새로운 표준을 만들어가는 당당함"),
+                 ("NCT DOJAEJUNG", "Perfume", "상대에게 자신의 흔적을 남기려는 계획적이고 감각적인 접근"),
+                 ("TREASURE", "BONA BONA", "목표를 향해 조직적으로 움직이는 에너제틱한 퍼포먼스"),
+                 ("Super Junior", "쏘리 쏘리 (SORRY, SORRY)", "한번 보면 잊을 수 없는, 체계적이고 중독적인 매력"),
+                 ("2PM", "Heartbeat", "감정에 휘둘리지 않는, 강인하고 절도 있는 퍼포먼스"),
+                 ("Girls' Generation", "소원을 말해봐 (Genie)", "당신이 원하는 모든 것을 이뤄주겠다는 든든한 약속"),
+                 ("SHINee", "Everybody", "모두를 깨우고 이끄는, 질서정연하고 강력한 리더십"),
+                 ("EXO", "으르렁 (Growl)", "자신의 영역을 침범하는 자에게 보내는 강력하고 조직적인 경고")],
+        "ESFJ": [("BSS (SEVENTEEN)", "파이팅 해야지", "주변 사람들에게 긍정적인 에너지를 불어넣는 사교적인 응원가"),
+                 ("STAYC", "Teddy Bear", "서툰 우리를 위로하고 격려하는 따뜻한 친구 같은 노래"),
+                 ("NMIXX", "Love Me Like This", "함께 어울리며 서로를 알아가는 과정의 즐거움"),
+                 ("OH MY GIRL", "Summer Comes", "모두가 함께 즐기는 축제처럼 설레고 행복한 분위기"),
+                 ("TWICE", "Alcohol-Free", "함께 있는 것만으로도 취할 듯 즐거운, 사랑스러운 관계의 찬가"),
+                 ("Apink", "NoNoNo", "언제나 곁에서 힘이 되어주겠다는 든든하고 따뜻한 약속"),
+                 ("Girls' Generation-TTS", "Twinkle", "어디서나 주목받는, 타고난 인기와 매력의 표현"),
+                 ("GFRIEND", "오늘부터 우리는 (Me gustas tu)", "수줍은 마음을 용기 내어 고백하는 사랑스러운 순간"),
+                 ("Red Velvet", "음파음파 (Umpah Umpah)", "상대를 배려하며 사랑의 호흡을 맞춰나가는 즐거움"),
+                 ("IVE", "After LIKE", "자신의 감정을 솔직하게 표현하며 관계를 이끄는 당당함")],
+        "ISTP": [("JUNGKOOK", "3D (feat. Jack Harlow)", "복잡한 건 생략, 목표를 향해 직진하는 간결하고 세련된 R&B"),
+                 ("LE SSERAFIM", "EASY", "어려워 보이지만, 사실은 모든 것을 손쉽게 해결하는 능력"),
+                 ("TAEMIN", "Guilty", "자신만의 방식으로 사랑을 정의하는, 예측불허의 매력"),
+                 ("KAI", "Rover", "어딘가에 얽매이지 않고 자유롭게 세상을 탐험하는 방랑자"),
+                 ("NCT U", "The 7th Sense", "음악을 통해 서로의 감각을 동기화하는 감각적이고 직관적인 곡"),
+                 ("BIGBANG", "BAE BAE", "변하지 않는 아름다움을 쫓는, 이기적이지만 순수한 욕망"),
+                 ("BLACKPINK", "뚜두뚜두 (DDU-DU DDU-DU)", "망설임 없이 상대를 조준하는, 시크하고 강력한 카리스마"),
+                 ("EXO", "Tempo", "누구도 방해할 수 없는, 자신만의 속도와 리듬"),
+                 ("WOODZ", "난 너 없이 (I hate you)", "쿨하게 이별을 말하지만, 숨겨진 감정이 드러나는 순간"),
+                 ("iKON", "리듬 타 (RHYTHM TA)", "생각보다 몸이 먼저 반응하는, 본능적이고 자유로운 힙합")],
+        "ISFP": [("V", "Love Me Again", "지나간 사랑에 대한 감성을 예술적으로 표현한 R&B 트랙"),
+                 ("JIMIN", "Like Crazy", "현실과 꿈의 경계에서 펼쳐지는 감각적이고 아름다운 퍼포먼스"),
+                 ("JEON SOMI", "Fast Forward", "미래의 낭만적인 사랑을 꿈꾸는 예술가적 상상력"),
+                 ("CHUNG HA", "EENIE MEENIE", "고민의 순간, 자신의 감각과 본능을 믿는 아티스트"),
+                 ("RM", "Come back to me", "내면의 목소리에 귀 기울이며 진정한 자신을 찾아가는 여정"),
+                 ("DEAN", "instagram", "타인과 나 사이의 거리감을 느끼는 예술가의 고독한 감성"),
+                 ("HEIZE", "널 너무 모르고", "관계 속에서 느낀 미묘한 감정의 변화를 섬세하게 포착"),
+                 ("Baek Yerin", "우주를 건너", "사랑하는 사람에게 닿고 싶은 몽환적이고 감성적인 목소리"),
+                 ("TAEYEON", "Fine", "이별 후의 감정을 솔직하게 마주하는 현실적인 위로"),
+                 ("BLACKPINK", "Lovesick Girls", "사랑에 상처받아도 결국 다시 사랑을 찾는 낭만적인 모순")],
+        "ESTP": [("JENNIE", "You & Me", "스포트라이트 아래, 지금 이 순간을 즐기는 과감하고 매력적인 무대"),
+                 ("Stray Kids", "MEGAVERSE", "모든 것을 압도하는 스케일, 현실을 즐기는 모험가의 세계"),
+                 ("ATEEZ", "WORK", "결과를 위해 행동으로 보여주는 현실적이고 뜨거운 열정"),
+                 ("ENHYPEN", "Bite Me", "운명을 깨닫고, 상대를 향해 도발적이고 짜릿한 제안을 하는 노래"),
+                 ("PSY", "강남스타일 (GANGNAM STYLE)", "전 세계를 무대로 만든, 유쾌하고 즉흥적인 에너지의 폭발"),
+                 ("Jessi", "눈누난나 (NUNU NANA)", "주변 시선은 신경 쓰지 않고, 현재의 즐거움에 집중하는 삶"),
+                 ("Block B - BASTARZ", "품행제로", "틀에 박힌 것을 거부하고 지금 이 순간을 즐기는 악동들"),
+                 ("2NE1", "내가 제일 잘 나가", "누구와도 비교할 수 없는, 압도적인 존재감과 자신감"),
+                 ("BIGBANG", "FANTASTIC BABY", "모두 함께 즐기는, 통제 불가능한 열정적인 파티"),
+                 ("iKON", "사랑을 했다 (LOVE SCENARIO)", "지나간 사랑도 쿨하게 추억하며 현재를 살아가는 태도")],
+        "ESFP": [("LISA", "Rockstar", "무대 위에서 가장 빛나는, 타고난 스타의 압도적인 존재감"),
+                 ("Hwasa", "I Love My Body", "자신의 모습을 긍정하며 즐기는, 건강하고 유쾌한 에너지"),
+                 ("HYO", "Picture", "모든 순간을 즐기며, 특별한 기억으로 남기려는 열정"),
+                 ("Nayeon", "ABCD", "자신의 매력을 적극적으로 어필하며 사랑을 쟁취하는 스타"),
+                 ("(G)I-DLE", "Wife", "고정관념을 깨는, 재치 있고 매력적인 퍼포먼스"),
+                 ("TWICE", "Likey", "관심과 사랑을 즐기며, 모든 순간을 SNS에 기록하는 인싸"),
+                 ("SISTAR", "Touch my body", "여름의 열기처럼 뜨겁고 솔직하게 현재를 즐기는 매력"),
+                 ("HyunA", "Bubble Pop!", "어디로 튈지 모르는, 상큼하고 발랄한 에너지의 연속"),
+                 ("MOMOLAND", "뿜뿜 (BBoom BBoom)", "숨길 수 없는 매력으로 상대를 사로잡는 즐거운 순간"),
+                 ("Red Velvet", "빨간 맛 (Red Flavor)", "여름처럼 짜릿하고 다채로운, 사랑의 즐거움을 맛보는 경험")]
     }
 
 # ---------------------------------
 # 앱 UI 렌더링
 # ---------------------------------
-st.title("🎧 MBTI 기반 K-POP 바로 듣기")
-st.write("당신의 MBTI를 입력하고, 취향에 맞는 최신 K-POP 노래를 바로 감상해보세요!")
+st.title("📜 MBTI K-POP 추천 리스트")
+st.write("당신의 MBTI를 입력하면, 어울리는 노래 10곡의 목록을 보여드려요!")
 
 user_mbti = st.text_input(
     label="**당신의 MBTI를 입력해주세요.**",
     placeholder="예: INFP, ESTJ 등"
 ).upper().strip()
 
-if st.button("🎶 추천 플레이리스트 생성"):
+if st.button("🎶 추천 리스트 보기"):
     music_db = get_music_recommendations_db()
 
     if user_mbti in music_db:
         st.markdown("---")
-        st.success(f"**{user_mbti}** 유형을 위한 추천 플레이리스트입니다!")
+        
+        recommendations_list = music_db[user_mbti]
 
-        recommendations = music_db[user_mbti]
-
-        for artist, title, youtube_id in recommendations:
-            st.subheader(f"**{title}**")
-            st.caption(f"**아티스트:** {artist}")
-            
-            # st.video를 사용하여 YouTube 영상을 앱에 직접 삽입합니다.
-            video_url = f"https://youtu.be/{youtube_id}"
-            st.video(video_url)
-            
-            st.markdown("---")
+        st.success(f"**{user_mbti}**님을 위한 추천곡 10선입니다!")
+        
+        # [핵심 변경사항] Pandas DataFrame을 사용하여 목록을 깔끔한 표로 보여줍니다.
+        df = pd.DataFrame(
+            recommendations_list,
+            columns=["아티스트", "곡 제목", "한 줄 추천"]
+        )
+        
+        # 인덱스 번호를 제거하여 더 깔끔하게 표시합니다.
+        st.dataframe(df, hide_index=True, use_container_width=True)
 
     elif user_mbti:
         st.error("유효한 16가지 MBTI 유형 중 하나를 정확히 입력해주세요. (예: ENFP)")
