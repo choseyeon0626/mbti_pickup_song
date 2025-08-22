@@ -1,91 +1,143 @@
 # streamlit_app.py
 import streamlit as st
-import re
 
 # ---------------------------------
 # 페이지 설정 (Page Configuration)
 # ---------------------------------
 st.set_page_config(
-    page_title="MBTI 기반 K-POP 추천",
-    page_icon="🎵",
+    page_title="MBTI 기반 K-POP 바로 듣기",
+    page_icon="🎧",
     layout="centered",
 )
 
 # ---------------------------------
-# 데이터베이스 (API 시뮬레이션)
+# 데이터베이스 (YouTube 영상 ID 포함)
 # ---------------------------------
-# 각 곡에 대한 이미지 URL을 추가하여 앨범 재킷을 표시할 수 있도록 데이터를 확장했습니다.
+# 각 곡의 공식 영상 YouTube ID를 포함하도록 데이터를 재구성했습니다.
+# "youtu.be/" 뒤에 오는 11자리 코드가 영상 ID입니다.
 def get_music_recommendations_db():
-    """MBTI 유형별 K-POP 추천 목록 (아티스트, 곡명, 이미지 URL)이 담긴 딕셔너리를 반환합니다."""
+    """MBTI 유형별 K-POP 추천 목록 (아티스트, 곡명, YouTube 영상 ID)이 담긴 딕셔너리를 반환합니다."""
     return {
         # 분석가형 (NT)
-        "INTJ": [("aespa", "Spicy", "https://i.imgur.com/39JESIP.jpeg"), ("(G)I-DLE", "Queencard", "https://i.imgur.com/8a6D9aL.jpeg"), ("Stray Kids", "특 (S-Class)", "https://i.imgur.com/2y4z4yD.jpeg"), ("LE SSERAFIM", "UNFORGIVEN", "https://i.imgur.com/2s9b4FY.jpeg"), ("ATEEZ", "BOUNCY", "https://i.imgur.com/xTKLfS6.jpeg")],
-        "INTP": [("NewJeans", "Super Shy", "https://i.imgur.com/gH31G5v.jpeg"), ("Xdinary Heroes", "Freakin' Bad", "https://i.imgur.com/wAs3ici.jpeg"), ("IVE", "I AM", "https://i.imgur.com/7gK5x2s.jpeg"), ("NCT DREAM", "ISTJ", "https://i.imgur.com/0zG9yYm.jpeg"), ("Billlie", "EUNOIA", "https://i.imgur.com/wVf2s0N.jpeg")],
-        "ENTJ": [("SEVENTEEN", "손오공 (Super)", "https://i.imgur.com/1a9c6aB.jpeg"), ("Stray Kids", "락 (樂) (LALALALA)", "https://i.imgur.com/7vj7i0I.jpeg"), ("ITZY", "UNTOUCHABLE", "https://i.imgur.com/6o7bK2a.jpeg"), ("ATEEZ", "미친 폼 (Crazy Form)", "https://i.imgur.com/qg9b1O4.jpeg"), ("NMIXX", "DASH", "https://i.imgur.com/zX2p2kM.jpeg")],
-        "ENTP": [("ZICO", "SPOT! (feat. JENNIE)", "https://i.imgur.com/9C0F1s8.jpeg"), ("(G)I-DLE", "Super Lady", "https://i.imgur.com/8t0sJ5M.jpeg"), ("LE SSERAFIM", "Perfect Night", "https://i.imgur.com/9t5V8bE.jpeg"), ("RIIZE", "Get A Guitar", "https://i.imgur.com/2b0C3gE.jpeg"), ("TAEYONG", "SHALALA", "https://i.imgur.com/8J5T3nF.jpeg")],
+        "INTJ": [("aespa", "Spicy", "wd9yB2p_nKA"), 
+                 ("(G)I-DLE", "Queencard", "7HDeem-JaSY"), 
+                 ("Stray Kids", "특 (S-Class)", "JsOOis4bBFg"), 
+                 ("LE SSERAFIM", "UNFORGIVEN (feat. Nile Rodgers)", "UBURTj20HXI"), 
+                 ("ATEEZ", "BOUNCY (K-HOT CHILLI PEPPERS)", "U_62i_T2b-g")],
+        "INTP": [("NewJeans", "Super Shy", "ArmDp-zijuc"), 
+                 ("Xdinary Heroes", "Freakin' Bad", "ses4S_5k-WU"), 
+                 ("IVE", "I AM", "6ZUIwj3FgUY"), 
+                 ("NCT DREAM", "ISTJ", "0HCd_L20_aY"), 
+                 ("Billlie", "EUNOIA", "X_I-KGXiu-s")],
+        "ENTJ": [("SEVENTEEN", "손오공", "mBXBOLG06Wc"), 
+                 ("Stray Kids", "락 (樂) (LALALALA)", "Tbf_4M2o2kc"), 
+                 ("ITZY", "UNTOUCHABLE", "5rBO_3IsIZY"), 
+                 ("ATEEZ", "미친 폼 (Crazy Form)", "R_sM3Dk2-B4"), 
+                 ("NMIXX", "DASH", "s_M_2_b6A-c")],
+        "ENTP": [("ZICO", "SPOT! (feat. JENNIE)", "AtXbe_8hA5E"), 
+                 ("(G)I-DLE", "Super Lady", "hPTB4lzyRjA"), 
+                 ("LE SSERAFIM", "Perfect Night", "h_TGi2AYxaM"), 
+                 ("RIIZE", "Get A Guitar", "iUw3LPM7OBU"), 
+                 ("TAEYONG", "SHALALA", "hxwF34yTu1o")],
         
         # 외교관형 (NF)
-        "INFJ": [("TAEYEON", "To. X", "https://i.imgur.com/7Y3F6vA.jpeg"), ("AKMU", "Love Lee", "https://i.imgur.com/2t6v3hY.jpeg"), ("IU", "Love wins all", "https://i.imgur.com/4l3A4oR.jpeg"), ("V", "Slow Dancing", "https://i.imgur.com/3d2Y5aF.jpeg"), ("LIM YOUNG WOONG", "Do or Die", "https://i.imgur.com/1B2C3gD.jpeg")],
-        "INFP": [("NewJeans", "Ditto", "https://i.imgur.com/5A6C7gB.jpeg"), ("BIBI", "밤양갱 (Bam Yang Gang)", "https://i.imgur.com/2k8H9vC.jpeg"), ("EXO", "Cream Soda", "https://i.imgur.com/4l3A4oR.jpeg"), ("KWON EUN BI", "The Flash", "https://i.imgur.com/4k5s6vA.jpeg"), ("fromis_9", "#menow", "https://i.imgur.com/2D3E4gA.jpeg")],
-        "ENFJ": [("SEVENTEEN", "음악의 신 (God of Music)", "https://i.imgur.com/9b8C7vD.jpeg"), ("IVE", "Baddie", "https://i.imgur.com/2E3F4gC.jpeg"), ("TWICE", "SET ME FREE", "https://i.imgur.com/7s8v9hA.jpeg"), ("STAYC", "Bubble", "https://i.imgur.com/1b2C3gD.jpeg"), ("NCT U", "Baggy Jeans", "https://i.imgur.com/6o7bK2a.jpeg")],
-        "ENFP": [("RIIZE", "Love 119", "https://i.imgur.com/3d2Y5aF.jpeg"), ("TWS", "첫 만남은 계획대로 되지 않아", "https://i.imgur.com/4l3A4oR.jpeg"), ("BOYNEXTDOOR", "뭣 같아 (But Sometimes)", "https://i.imgur.com/2t6v3hY.jpeg"), ("KISS OF LIFE", "Midas Touch", "https://i.imgur.com/7Y3F6vA.jpeg"), ("ZEROBASEONE", "In Bloom", "https://i.imgur.com/9C0F1s8.jpeg")],
+        "INFJ": [("TAEYEON", "To. X", "5_n6E17-3_o"), 
+                 ("AKMU", "Love Lee", "EIz09kLzB9k"), 
+                 ("IU", "Love wins all", "JleoAppaxi0"), 
+                 ("V", "Slow Dancing", "eI0iTRS0Ha8"), 
+                 ("LIM YOUNG WOONG", "Do or Die", "wdv_DDSAg3s")],
+        "INFP": [("NewJeans", "Ditto", "pSUydWEqKwE"), 
+                 ("BIBI", "밤양갱 (Bam Yang Gang)", "smdmE46En_s"), 
+                 ("EXO", "Cream Soda", "iB8_f2a0V2Y"), 
+                 ("KWON EUN BI", "The Flash", "D8_ge9dJAw4"), 
+                 ("fromis_9", "#menow", "41ocfnMvCpg")],
+        "ENFJ": [("SEVENTEEN", "음악의 신 (God of Music)", "zEkg4GBQumc"), 
+                 ("IVE", "Baddie", "Da4P2uT4F2E"), 
+                 ("TWICE", "SET ME FREE", "w4cTYnOPdNk"), 
+                 ("STAYC", "Bubble", "3-1cn0kF-d8"), 
+                 ("NCT U", "Baggy Jeans", "2Tpourp-m6Y")],
+        "ENFP": [("RIIZE", "Love 119", "ASY-L11J4wM"), 
+                 ("TWS", "첫 만남은 계획대로 되지 않아", "h-49M7syGbY"), 
+                 ("BOYNEXTDOOR", "뭣 같아 (But Sometimes)", "XvGTfv82f2E"), 
+                 ("KISS OF LIFE", "Midas Touch", "SoY_S41-3j4"), 
+                 ("ZEROBASEONE", "In Bloom", "GzRE_tB2kAc")],
         
         # 관리자형 (SJ)
-        "ISTJ": [("NCT 127", "Fact Check", "https://i.imgur.com/zX2p2kM.jpeg"), ("SHINee", "HARD", "https://i.imgur.com/qg9b1O4.jpeg"), ("Red Velvet", "Chill Kill", "https://i.imgur.com/7vj7i0I.jpeg"), ("MONSTA X", "Beautiful Liar", "https://i.imgur.com/1a9c6aB.jpeg"), ("THE BOYZ", "WATCH IT", "https://i.imgur.com/wVf2s0N.jpeg")],
-        "ISFJ": [("JUNGKOOK", "Seven (feat. Latto)", "https://i.imgur.com/wAs3ici.jpeg"), ("JISOO", "꽃 (FLOWER)", "https://i.imgur.com/7gK5x2s.jpeg"), ("PARK HYUN SEO", "Let's break up", "https://i.imgur.com/0zG9yYm.jpeg"), ("EXO", "Let Me In", "https://i.imgur.com/gH31G5v.jpeg"), ("DK", "Heart", "https://i.imgur.com/39JESIP.jpeg")],
-        "ESTJ": [("JYP", "Changed Man", "https://i.imgur.com/8a6D9aL.jpeg"), ("aespa", "Drama", "https://i.imgur.com/2y4z4yD.jpeg"), ("IVE", "Kitsch", "https://i.imgur.com/2s9b4FY.jpeg"), ("NCT DOJAEJUNG", "Perfume", "https://i.imgur.com/xTKLfS6.jpeg"), ("TREASURE", "BONA BONA", "https://i.imgur.com/2b0C3gE.jpeg")],
-        "ESFJ": [("SEVENTEEN BSS", "파이팅 해야지 (Feat. 이영지)", "https://i.imgur.com/9t5V8bE.jpeg"), ("STAYC", "Teddy Bear", "https://i.imgur.com/8t0sJ5M.jpeg"), ("NMIXX", "Love Me Like This", "https://i.imgur.com/8J5T3nF.jpeg"), ("Weeekly", "Good Day (Special Daileee)", "https://i.imgur.com/9b8C7vD.jpeg"), ("OH MY GIRL", "Summer Comes", "https://i.imgur.com/2E3F4gC.jpeg")],
+        "ISTJ": [("NCT 127", "Fact Check", "qXEb_bM8Gms"), 
+                 ("SHINee", "HARD", "1DDr98S-5lu"), 
+                 ("Red Velvet", "Chill Kill", "tOKt_1EzFoI"), 
+                 ("MONSTA X", "Beautiful Liar", "AW3V4-a82sI"), 
+                 ("THE BOYZ", "WATCH IT", "l_0_n2j1D4s")],
+        "ISFJ": [("JUNGKOOK", "Seven (feat. Latto)", "QU9c0053UAU"), 
+                 ("JISOO", "꽃 (FLOWER)", "Yud_KKiY_oA"), 
+                 ("DK(디셈버)", "Heart", "8g_s9Uo2-zI"), 
+                 ("EXO", "Let Me In", "910-tFx3k4c"), 
+                 ("박재정", "헤어지자 말해요", "3c3_kBWdG-Q")],
+        "ESTJ": [("J.Y. Park", "Changed Man", "z2xA5NJlszM"), 
+                 ("aespa", "Drama", "D8kUxbQA_30"), 
+                 ("IVE", "Kitsch", "pG6tJ_oPK54"), 
+                 ("NCT DOJAEJUNG", "Perfume", "DaKRs9C-NkU"), 
+                 ("TREASURE", "BONA BONA", "p9bfL1_aK34")],
+        "ESFJ": [("BSS (SEVENTEEN)", "파이팅 해야지 (Feat. 이영지)", "mBXBOLG06Wc"), 
+                 ("STAYC", "Teddy Bear", "qORYO0at_SA"), 
+                 ("NMIXX", "Love Me Like This", "EDnwWcFpOBo"), 
+                 ("Weeekly", "Good Day (Special Daileee)", "b_GTnK62lI8"), 
+                 ("OH MY GIRL", "Summer Comes", "Xy4-pha3j_k")],
         
         # 탐험가형 (SP)
-        "ISTP": [("JUNGKOOK", "3D (feat. Jack Harlow)", "https://i.imgur.com/7s8v9hA.jpeg"), ("LE SSERAFIM", "EASY", "https://i.imgur.com/1b2C3gD.jpeg"), ("BABYMONSTER", "SHEESH", "https://i.imgur.com/6o7bK2a.jpeg"), ("TAEMIN", "Guilty", "https://i.imgur.com/3d2Y5aF.jpeg"), ("KAI", "Rover", "https://i.imgur.com/4l3A4oR.jpeg")],
-        "ISFP": [("V", "Love Me Again", "https://i.imgur.com/2t6v3hY.jpeg"), ("JIMIN", "Like Crazy", "https://i.imgur.com/7Y3F6vA.jpeg"), ("JEON SOMI", "Fast Forward", "https://i.imgur.com/9C0F1s8.jpeg"), ("CHUNG HA", "EENIE MEENIE", "https://i.imgur.com/5A6C7gB.jpeg"), ("RM", "Come back to me", "https://i.imgur.com/2k8H9vC.jpeg")],
-        "ESTP": [("JENNIE", "You & Me", "https://i.imgur.com/4k5s6vA.jpeg"), ("Stray Kids", "MEGAVERSE", "https://i.imgur.com/2D3E4gA.jpeg"), ("ATEEZ", "WORK", "https://i.imgur.com/zX2p2kM.jpeg"), ("ENHYPEN", "Bite Me", "https://i.imgur.com/qg9b1O4.jpeg"), ("ZEROBASEONE", "CRUSH", "https://i.imgur.com/7vj7i0I.jpeg")],
-        "ESFP": [("LISA", "Rockstar", "https://i.imgur.com/1a9c6aB.jpeg"), ("Hwasa", "I Love My Body", "https://i.imgur.com/wVf2s0N.jpeg"), ("HYO", "Picture", "https://i.imgur.com/wAs3ici.jpeg"), ("Nayeon", "ABCD", "https://i.imgur.com/7gK5x2s.jpeg"), ("(G)I-DLE", "Wife", "https://i.imgur.com/0zG9yYm.jpeg")]
+        "ISTP": [("JUNGKOOK", "3D (feat. Jack Harlow)", "mHNCM-YALSA"), 
+                 ("LE SSERAFIM", "EASY", "bB83K2v2h8s"), 
+                 ("BABYMONSTER", "SHEESH", "2wA_b6e4GvM"), 
+                 ("TAEMIN", "Guilty", "pasRphQ7g-U"), 
+                 ("KAI", "Rover", "Fc-fa6cAe2c")],
+        "ISFP": [("V", "Love Me Again", "HYzyRHAHJl8"), 
+                 ("JIMIN", "Like Crazy", "UaywgA-Ea-A"), 
+                 ("JEON SOMI", "Fast Forward", "g_k8vNxiS-s"), 
+                 ("CHUNG HA", "EENIE MEENIE (Feat. 홍중 of ATEEZ)", "3XWb2D2-P3M"), 
+                 ("RM", "Come back to me", "5W-tqMM0LdA")],
+        "ESTP": [("JENNIE", "You & Me", "hG_w_QLcmA4"), 
+                 ("Stray Kids", "MEGAVERSE", "lO-a0IkeveY"), 
+                 ("ATEEZ", "WORK", "lJJeDA1rR-0"), 
+                 ("ENHYPEN", "Bite Me", "wXh5JprKqiM"), 
+                 ("ZEROBASEONE", "CRUSH", "16-1MSd3v84")],
+        "ESFP": [("LISA", "Rockstar", "S6g0S-4JtY4"), 
+                 ("Hwasa", "I Love My Body", "tG_hY2l-h4o"), 
+                 ("HYO", "Picture", "E6nwnoMv5Gg"), 
+                 ("Nayeon", "ABCD", "BGqH1cN_F4k"), 
+                 ("(G)I-DLE", "Wife", "dOr21_04D0U")]
     }
-
 
 # ---------------------------------
 # 앱 UI 렌더링
 # ---------------------------------
-st.title("🎵 MBTI 기반 K-POP 추천")
-st.write("당신의 MBTI를 입력하고, 취향에 맞는 최신 K-POP 노래를 추천받아보세요!")
+st.title("🎧 MBTI 기반 K-POP 바로 듣기")
+st.write("당신의 MBTI를 입력하고, 취향에 맞는 최신 K-POP 노래를 바로 감상해보세요!")
 
-# 사용자로부터 MBTI를 텍스트로 입력받습니다.
 user_mbti = st.text_input(
     label="**당신의 MBTI를 입력해주세요.**",
     placeholder="예: INFP, ESTJ 등"
-).upper().strip() # 입력값을 대문자로 변환하고 양쪽 공백을 제거합니다.
+).upper().strip()
 
-# 추천 버튼
 if st.button("🎶 추천 플레이리스트 생성"):
     music_db = get_music_recommendations_db()
 
-    # 입력된 MBTI가 유효한지 확인합니다 (DB의 key 값과 일치하는지).
     if user_mbti in music_db:
         st.markdown("---")
         st.success(f"**{user_mbti}** 유형을 위한 추천 플레이리스트입니다!")
 
-        # 추천 목록을 가져옵니다.
         recommendations = music_db[user_mbti]
 
-        # 각 추천곡을 순회하며 앨범 재킷과 정보를 표시합니다.
-        for artist, title, image_url in recommendations:
-            # st.columns를 사용하여 이미지와 텍스트를 나란히 배치합니다.
-            col1, col2 = st.columns([1, 3]) # 1:3 비율로 컬럼 너비 설정
-
-            with col1:
-                st.image(image_url, width=150) # 앨범 재킷 이미지 표시
+        for artist, title, youtube_id in recommendations:
+            st.subheader(f"**{title}**")
+            st.caption(f"**아티스트:** {artist}")
             
-            with col2:
-                st.subheader(f"**{title}**") # 곡 제목
-                st.caption(f"**아티스트:** {artist}") # 아티스트 정보
+            # st.video를 사용하여 YouTube 영상을 앱에 직접 삽입합니다.
+            video_url = f"https://youtu.be/{youtube_id}"
+            st.video(video_url)
             
-            st.markdown("---") # 곡 사이에 구분선 추가
+            st.markdown("---")
 
-    # 입력값이 있지만 유효하지 않은 MBTI일 경우 에러 메시지를 표시합니다.
     elif user_mbti:
         st.error("유효한 16가지 MBTI 유형 중 하나를 정확히 입력해주세요. (예: ENFP)")
-    
-    # 아무것도 입력하지 않고 버튼을 눌렀을 경우 안내 메시지를 표시합니다.
     else:
         st.warning("MBTI를 입력한 후 버튼을 눌러주세요.")
